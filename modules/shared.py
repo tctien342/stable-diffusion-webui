@@ -62,8 +62,8 @@ devices.device, devices.device_interrogate, devices.device_gfpgan, devices.devic
 device = devices.device
 weight_load_location = None if cmd_opts.lowram else "cpu"
 
-batch_cond_uncond = cmd_opts.always_batch_cond_uncond or not (cmd_opts.lowvram or cmd_opts.medvram)
-parallel_processing_allowed = not cmd_opts.lowvram and not cmd_opts.medvram
+batch_cond_uncond = cmd_opts.always_batch_cond_uncond or not cmd_opts.lowvram
+parallel_processing_allowed = not cmd_opts.lowvram
 xformers_available = False
 config_filename = cmd_opts.ui_settings_file
 
@@ -331,6 +331,7 @@ options_templates.update(options_section(('sd', "Stable Diffusion"), {
     "comma_padding_backtrack": OptionInfo(20, "Increase coherency by padding from the last comma within n tokens when using more than 75 tokens", gr.Slider, {"minimum": 0, "maximum": 74, "step": 1 }),
     "CLIP_stop_at_last_layers": OptionInfo(1, "Clip skip", gr.Slider, {"minimum": 1, "maximum": 12, "step": 1}),
     "upcast_attn": OptionInfo(False, "Upcast cross attention layer to float32"),
+    "allow_nsfw": OptionInfo(False, "Allow NSFW images to be used in training", gr.Checkbox),
 }))
 
 options_templates.update(options_section(('compatibility', "Compatibility"), {
