@@ -42,6 +42,7 @@ from modules.hypernetworks.hypernetwork import create_hypernetwork, train_hypern
 from PIL import PngImagePlugin, Image
 from modules.sd_models import (
     checkpoints_list,
+    checkpoints_loaded,
     unload_model_weights,
     reload_model_weights,
 )
@@ -781,6 +782,7 @@ class Api:
 
         return ProgressResponse(
             progress=progress,
+            model=shared.opts.data['sd_model_checkpoint'],
             eta_relative=eta_relative,
             state=shared.state.dict(),
             current_image=current_image,
@@ -878,6 +880,7 @@ class Api:
                 "sha256": x.sha256,
                 "filename": x.filename,
                 "config": find_checkpoint_config_near_filename(x),
+                "cached": x in checkpoints_loaded,
             }
             for x in checkpoints_list.values()
         ]

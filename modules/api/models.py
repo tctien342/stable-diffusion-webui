@@ -325,6 +325,7 @@ class ProgressResponse(BaseModel):
     progress: float = Field(
         title="Progress", description="The progress with a range of 0 to 1"
     )
+    model: str = Field(title="Model", description="The current model")
     eta_relative: float = Field(title="ETA in secs")
     state: dict = Field(title="State", description="The current state snapshot")
     current_image: str = Field(
@@ -484,6 +485,7 @@ class SDModelItem(BaseModel):
     sha256: Optional[str] = Field(title="sha256 hash")
     filename: str = Field(title="Filename")
     config: Optional[str] = Field(title="Config file")
+    cached: bool = Field(title="Cached", default=False, description="Is cached")
 
 
 class HypernetworkItem(BaseModel):
