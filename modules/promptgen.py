@@ -86,6 +86,7 @@ def generate_batch(
 def generate_magic_prompt(text, batch_size = 4, *args):
     model_name = "Gustavosta/MagicPrompt-Stable-Diffusion"
     batch_count = 1
+    devices.torch_gc()
     shared.state.textinfo = "Loading model..."
     shared.state.job_count = batch_count
 
@@ -118,5 +119,7 @@ def generate_magic_prompt(text, batch_size = 4, *args):
         shared.state.nextjob()
         for generated_text in texts:
             output.append(generated_text);
-
+    
+    shared.state.end()
+    devices.torch_gc()
     return output

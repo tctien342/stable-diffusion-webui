@@ -53,6 +53,9 @@ from typing import List
 import piexif
 import piexif.helper
 
+# Binding in pixelization extension
+pixelization_fn = None
+
 
 def upscaler_to_index(name: str):
     try:
@@ -406,9 +409,21 @@ class Api:
             methods=["POST"],
             response_model=PromptGenResponse,
         )
+        self.add_api_route(
+            "/sdapi/v1/pixelize",
+            self.pixelize,
+            methods=["POST"],
+            response_model=PixelizeResponse,
+        )
 
         self.default_script_arg_txt2img = []
         self.default_script_arg_img2img = []
+
+    def pixelize(self, req: PixelizeResquest):
+        global pixelization_fn
+        image = decode_base64_to_image(req.image)
+        output = pixelization_fn(image, req.size)
+        return {"output": encode_pil_to_base64(output)}
 
     def prompt_gen(self, req: PromptGenResquest):
         output = generate_magic_prompt(req.input, req.count)

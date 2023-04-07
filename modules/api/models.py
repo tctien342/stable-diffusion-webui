@@ -325,7 +325,7 @@ class ProgressResponse(BaseModel):
     progress: float = Field(
         title="Progress", description="The progress with a range of 0 to 1"
     )
-    model: str = Field(title="Model", description="The current model")
+    model: Optional[str] = Field(title="Model", description="The current model")
     eta_relative: float = Field(title="ETA in secs")
     state: dict = Field(title="State", description="The current state snapshot")
     current_image: str = Field(
@@ -414,6 +414,25 @@ class PromptGenResquest(BaseModel):
         default=4,
         title="Count",
         description="The number of magic prompts which need to be generated.",
+    )
+
+
+class PixelizeResponse(BaseModel):
+    output: str = Field(
+        title="Output image",
+        description="The image which pixelized in base64 format.",
+    )
+
+
+class PixelizeResquest(BaseModel):
+    image: str = Field(
+        title="Input image",
+        description="The image which need to be pixelized in base64 format.",
+    )
+    size: Optional[int] = Field(
+        default=4,
+        title="Pixel size",
+        description="The size of pixel which need to be pixelized.",
     )
 
 
