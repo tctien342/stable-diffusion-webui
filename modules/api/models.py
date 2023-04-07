@@ -382,6 +382,18 @@ class RemoveBackgroundResquest(BaseModel):
         title="Model", description="The model used to remove background."
     )
 
+class Img2TextResponse(BaseModel):
+    caption: str = Field(
+        title="Output caption",
+        description="The caption which generated from input image.",
+    )
+
+class Img2TextResquest(BaseModel):
+    image: str = Field(
+        title="Input image",
+        description="The image which need to be generated caption. Format in base64",
+    )
+
 
 class CreateResponse(BaseModel):
     info: str = Field(

@@ -25,6 +25,7 @@ from modules import (
     ui,
     postprocessing,
 )
+from modules.interrogate import image_to_prompt
 from modules.api.models import *
 from modules.processing import (
     StableDiffusionProcessingTxt2Img,
@@ -391,9 +392,20 @@ class Api:
             methods=["POST"],
             response_model=RemoveBackgroundResponse,
         )
+        self.add_api_route(
+            "/sdapi/v1/img2text",
+            self.img2text,
+            methods=["POST"],
+            response_model=Img2TextResponse,
+        )
 
         self.default_script_arg_txt2img = []
         self.default_script_arg_img2img = []
+
+    def img2text(self, input: Img2TextResquest):
+        image = decode_base64_to_image(input.image)
+        output = image_to_prompt(image)
+        return {"caption": output}
 
     def rm_background(self, input: RemoveBackgroundResquest):
         image = decode_base64_to_image(input.image)
