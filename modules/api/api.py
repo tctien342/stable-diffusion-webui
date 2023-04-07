@@ -26,6 +26,7 @@ from modules import (
     postprocessing,
 )
 from modules.interrogate import image_to_prompt
+from modules.promptgen import generate_magic_prompt
 from modules.api.models import *
 from modules.processing import (
     StableDiffusionProcessingTxt2Img,
@@ -398,9 +399,19 @@ class Api:
             methods=["POST"],
             response_model=Img2TextResponse,
         )
+        self.add_api_route(
+            "/sdapi/v1/prompt",
+            self.prompt_gen,
+            methods=["POST"],
+            response_model=PromptGenResponse,
+        )
 
         self.default_script_arg_txt2img = []
         self.default_script_arg_img2img = []
+
+    def prompt_gen(self, req: PromptGenResquest):
+        output = generate_magic_prompt(req.input, req.count)
+        return {"output": output}
 
     def img2text(self, input: Img2TextResquest):
         image = decode_base64_to_image(input.image)
@@ -732,7 +743,7 @@ class Api:
 
         return PNGInfoResponse(info=geninfo, items=items)
 
-    def progressapi(self, req: ProgressRequest = Depends()):
+    async def progressapi(self, req: ProgressRequest = Depends()):
         # copy from check_progress_call of ui.py
 
         if shared.state.job_count == 0:

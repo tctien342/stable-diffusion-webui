@@ -382,16 +382,37 @@ class RemoveBackgroundResquest(BaseModel):
         title="Model", description="The model used to remove background."
     )
 
+
 class Img2TextResponse(BaseModel):
     caption: str = Field(
         title="Output caption",
         description="The caption which generated from input image.",
     )
 
+
 class Img2TextResquest(BaseModel):
     image: str = Field(
         title="Input image",
         description="The image which need to be generated caption. Format in base64",
+    )
+
+
+class PromptGenResponse(BaseModel):
+    output: List[str] = Field(
+        title="Output magic prompts",
+        description="The magic prompts which generated from input text.",
+    )
+
+
+class PromptGenResquest(BaseModel):
+    input: str = Field(
+        title="Input text",
+        description="The text which need to be generated magic prompts.",
+    )
+    count: Optional[int] = Field(
+        default=4,
+        title="Count",
+        description="The number of magic prompts which need to be generated.",
     )
 
 
