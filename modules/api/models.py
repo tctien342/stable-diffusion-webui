@@ -423,6 +423,27 @@ class PixelizeResponse(BaseModel):
         description="The image which pixelized in base64 format.",
     )
 
+class FaceMaskResquest(BaseModel):
+    image: str = Field(
+        title="Input image",
+        description="The image which need to be masked in base64 format.",
+    )
+
+
+class FaceMaskResponse(BaseModel):
+    output: str = Field(
+        title="Output image",
+        description="The image which have face's masked in base64 format.",
+    )
+    center_x: int = Field(
+        title="Center X",
+        description="The center X of face's bounding box.",
+    )
+    center_y: int = Field(
+        title="Center Y",
+        description="The center Y of face's bounding box.",
+    )
+
 
 class PixelizeResquest(BaseModel):
     image: str = Field(

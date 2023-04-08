@@ -10,6 +10,7 @@ numpy
 omegaconf
 opencv-contrib-python
 requests
+imutils
 piexif
 Pillow
 pytorch_lightning==1.7.7

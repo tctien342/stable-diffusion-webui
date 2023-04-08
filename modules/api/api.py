@@ -15,6 +15,10 @@ from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from secrets import compare_digest
 
+import numpy as np
+import imutils
+import cv2
+
 import modules.shared as shared
 from modules import (
     sd_samplers,
@@ -415,9 +419,55 @@ class Api:
             methods=["POST"],
             response_model=PixelizeResponse,
         )
+        self.add_api_route(
+            "/sdapi/v1/pose/face-mask",
+            self.face_mask,
+            methods=["POST"],
+            response_model=FaceMaskResponse,
+        )
 
         self.default_script_arg_txt2img = []
         self.default_script_arg_img2img = []
+
+    async def face_mask(self, input: FaceMaskResquest):
+        templateB64 = "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"
+        img = base64.b64decode(input.image)
+        tpl = base64.b64decode(templateB64)
+        np_image_o = np.fromstring(img, dtype=np.uint8)
+        np_template = np.fromstring(tpl, dtype=np.uint8)
+
+        image_o = cv2.imdecode(np_image_o, cv2.IMREAD_COLOR)
+        template = cv2.imdecode(np_template, cv2.IMREAD_COLOR)
+
+        loc = False
+        threshold = 0.5
+        x, w, h = template.shape[::-1]
+        for scale in np.linspace(0.2, 1.0, 20)[::-1]:
+            resized = imutils.resize(template, width=int(template.shape[1] * scale))
+            x, w, h = resized.shape[::-1]
+            res = cv2.matchTemplate(image_o, resized, cv2.TM_CCORR_NORMED)
+
+            loc = np.where(res >= threshold)
+            if len(list(zip(*loc[::-1]))) > 0:
+                break
+        
+        target_center_x = 0;
+        target_center_y = 0;
+
+        if loc and len(list(zip(*loc[::-1]))) > 0:
+            for pt in zip(*loc[::-1]):
+                center = (pt[0] + w // 2, pt[1] + h // 2)
+                target_center_x = center[0]
+                target_center_y = center[1]
+                # cv2.rectangle(image_o, pt, (pt[0] + w, pt[1] + h), (0, 0, 255), 2)
+                # cv2.rectangle(input, (pt[0]*2, pt[1]*2), ((pt[0] + w)*2, (pt[1] + h)*2), (0, 0, 255), 2)
+                image_o.fill(0)
+                cv2.ellipse(image_o, center, (w, h), 0, 0, 360, (255, 255, 255), -1)
+
+        retval, buffer = cv2.imencode('.jpg', image_o)
+        jpg_as_text = base64.b64encode(buffer)
+
+        return {"output": jpg_as_text, "center_x": target_center_x, "center_y": target_center_y}
 
     def pixelize(self, req: PixelizeResquest):
         global pixelization_fn
@@ -789,10 +839,10 @@ class Api:
 
         progress = min(progress, 1)
 
-        shared.state.set_current_image()
 
         current_image = None
         if shared.state.current_image and not req.skip_current_image:
+            shared.state.set_current_image()
             current_image = encode_pil_to_base64(shared.state.current_image)
 
         return ProgressResponse(
@@ -886,7 +936,7 @@ class Api:
             for upscaler in shared.sd_upscalers
         ]
 
-    def get_sd_models(self):
+    async def get_sd_models(self):
         return [
             {
                 "title": x.title,
