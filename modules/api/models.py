@@ -423,6 +423,7 @@ class PixelizeResponse(BaseModel):
         description="The image which pixelized in base64 format.",
     )
 
+
 class FaceMaskResquest(BaseModel):
     image: str = Field(
         title="Input image",
@@ -442,6 +443,22 @@ class FaceMaskResponse(BaseModel):
     center_y: int = Field(
         title="Center Y",
         description="The center Y of face's bounding box.",
+    )
+
+class DownloadPluginsResponse(BaseModel):
+    success: bool = Field(
+        title="Success",
+        description="Whether the download was successful or not.",
+    )
+    file_name: Optional[str] = Field(
+        title="File name",
+        description="The name of the downloaded file.",
+    )
+
+class DownloadPluginsResquest(BaseModel):
+    url: str = Field(
+        title="URL",
+        description="The URL of the plugin to download.",
     )
 
 
@@ -578,6 +595,12 @@ class EmbeddingItem(BaseModel):
     )
 
 
+class LoraItem(BaseModel):
+    name: str = Field(title="Name")
+    filename: Optional[str] = Field(title="Lora file name")
+    metadata: Optional[Any] = Field(title="Meta data of lora")
+
+
 class EmbeddingsResponse(BaseModel):
     loaded: Dict[str, EmbeddingItem] = Field(
         title="Loaded", description="Embeddings loaded for the current model"
@@ -585,6 +608,12 @@ class EmbeddingsResponse(BaseModel):
     skipped: Dict[str, EmbeddingItem] = Field(
         title="Skipped",
         description="Embeddings skipped for the current model (likely due to architecture incompatibility)",
+    )
+
+
+class LorasResponse(BaseModel):
+    loaded: Any = Field(
+        title="Loaded", description="Embeddings loaded for the current model"
     )
 
 

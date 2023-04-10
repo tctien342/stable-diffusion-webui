@@ -104,7 +104,7 @@ def generate_magic_prompt(text, batch_size = 4, *args):
     assert current.model, "No model available"
     assert current.tokenizer, "No tokenizer available"
 
-    current.model.to(device())
+    current.model.to(devices.device)
 
     shared.state.textinfo = ""
 
@@ -121,5 +121,6 @@ def generate_magic_prompt(text, batch_size = 4, *args):
             output.append(generated_text);
     
     shared.state.end()
+    current.model.to(devices.cpu)
     devices.torch_gc()
     return output

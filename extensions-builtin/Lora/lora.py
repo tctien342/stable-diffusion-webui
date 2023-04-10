@@ -5,8 +5,15 @@ import torch
 from typing import Union
 
 from modules import shared, devices, sd_models, errors
+from modules.api import api
 
-metadata_tags_order = {"ss_sd_model_name": 1, "ss_resolution": 2, "ss_clip_skip": 3, "ss_num_train_images": 10, "ss_tag_frequency": 20}
+metadata_tags_order = {
+    "ss_sd_model_name": 1,
+    "ss_resolution": 2,
+    "ss_clip_skip": 3,
+    "ss_num_train_images": 10,
+    "ss_tag_frequency": 20,
+}
 
 re_digits = re.compile(r"\d+")
 re_x_proj = re.compile(r"(.*)_([qkv]_proj)$")
@@ -19,7 +26,7 @@ suffix_conversion = {
         "conv2": "out_layers_3",
         "time_emb_proj": "emb_layers_1",
         "conv_shortcut": "skip_connection",
-    }
+    },
 }
 
 
@@ -60,9 +67,9 @@ def convert_diffusers_name_to_compvis(key, is_sd2):
 
     if match(m, r"lora_te_text_model_encoder_layers_(\d+)_(.+)"):
         if is_sd2:
-            if 'mlp_fc1' in m[1]:
+            if "mlp_fc1" in m[1]:
                 return f"model_transformer_resblocks_{m[0]}_{m[1].replace('mlp_fc1', 'mlp_c_fc')}"
-            elif 'mlp_fc2' in m[1]:
+            elif "mlp_fc2" in m[1]:
                 return f"model_transformer_resblocks_{m[0]}_{m[1].replace('mlp_fc2', 'mlp_c_proj')}"
             else:
                 return f"model_transformer_resblocks_{m[0]}_{m[1].replace('self_attn', 'attn')}"
@@ -87,12 +94,16 @@ class LoraOnDisk:
 
         if self.metadata:
             m = {}
-            for k, v in sorted(self.metadata.items(), key=lambda x: metadata_tags_order.get(x[0], 999)):
+            for k, v in sorted(
+                self.metadata.items(), key=lambda x: metadata_tags_order.get(x[0], 999)
+            ):
                 m[k] = v
 
             self.metadata = m
 
-        self.ssmd_cover_images = self.metadata.pop('ssmd_cover_images', None)  # those are cover images and they are too big to display in UI as text
+        self.ssmd_cover_images = self.metadata.pop(
+            "ssmd_cover_images", None
+        )  # those are cover images and they are too big to display in UI as text
 
 
 class LoraModule:
@@ -133,11 +144,13 @@ def load_lora(name, filename):
     sd = sd_models.read_state_dict(filename)
 
     keys_failed_to_match = {}
-    is_sd2 = 'model_transformer_resblocks' in shared.sd_model.lora_layer_mapping
+    is_sd2 = "model_transformer_resblocks" in shared.sd_model.lora_layer_mapping
 
     for key_diffusers, weight in sd.items():
         key_diffusers_without_lora_parts, lora_key = key_diffusers.split(".", 1)
-        key = convert_diffusers_name_to_compvis(key_diffusers_without_lora_parts, is_sd2)
+        key = convert_diffusers_name_to_compvis(
+            key_diffusers_without_lora_parts, is_sd2
+        )
 
         sd_module = shared.sd_model.lora_layer_mapping.get(key, None)
 
@@ -166,11 +179,17 @@ def load_lora(name, filename):
         elif type(sd_module) == torch.nn.MultiheadAttention:
             module = torch.nn.Linear(weight.shape[1], weight.shape[0], bias=False)
         elif type(sd_module) == torch.nn.Conv2d:
-            module = torch.nn.Conv2d(weight.shape[1], weight.shape[0], (1, 1), bias=False)
+            module = torch.nn.Conv2d(
+                weight.shape[1], weight.shape[0], (1, 1), bias=False
+            )
         else:
-            print(f'Lora layer {key_diffusers} matched a layer with unsupported type: {type(sd_module).__name__}')
+            print(
+                f"Lora layer {key_diffusers} matched a layer with unsupported type: {type(sd_module).__name__}"
+            )
             continue
-            assert False, f'Lora layer {key_diffusers} matched a layer with unsupported type: {type(sd_module).__name__}'
+            assert (
+                False
+            ), f"Lora layer {key_diffusers} matched a layer with unsupported type: {type(sd_module).__name__}"
 
         with torch.no_grad():
             module.weight.copy_(weight)
@@ -182,10 +201,14 @@ def load_lora(name, filename):
         elif lora_key == "lora_down.weight":
             lora_module.down = module
         else:
-            assert False, f'Bad Lora layer name: {key_diffusers} - must end in lora_up.weight, lora_down.weight or alpha'
+            assert (
+                False
+            ), f"Bad Lora layer name: {key_diffusers} - must end in lora_up.weight, lora_down.weight or alpha"
 
     if len(keys_failed_to_match) > 0:
-        print(f"Failed to match keys when loading Lora {filename}: {keys_failed_to_match}")
+        print(
+            f"Failed to match keys when loading Lora {filename}: {keys_failed_to_match}"
+        )
 
     return lora
 
@@ -227,23 +250,33 @@ def lora_calc_updown(lora, module, target):
         down = module.down.weight.to(target.device, dtype=target.dtype)
 
         if up.shape[2:] == (1, 1) and down.shape[2:] == (1, 1):
-            updown = (up.squeeze(2).squeeze(2) @ down.squeeze(2).squeeze(2)).unsqueeze(2).unsqueeze(3)
+            updown = (
+                (up.squeeze(2).squeeze(2) @ down.squeeze(2).squeeze(2))
+                .unsqueeze(2)
+                .unsqueeze(3)
+            )
         else:
             updown = up @ down
 
-        updown = updown * lora.multiplier * (module.alpha / module.up.weight.shape[1] if module.alpha else 1.0)
+        updown = (
+            updown
+            * lora.multiplier
+            * (module.alpha / module.up.weight.shape[1] if module.alpha else 1.0)
+        )
 
         return updown
 
 
-def lora_apply_weights(self: Union[torch.nn.Conv2d, torch.nn.Linear, torch.nn.MultiheadAttention]):
+def lora_apply_weights(
+    self: Union[torch.nn.Conv2d, torch.nn.Linear, torch.nn.MultiheadAttention]
+):
     """
     Applies the currently selected set of Loras to the weights of torch layer self.
     If weights already have this particular set of loras applied, does nothing.
     If not, restores orginal weights from backup and alters weights according to loras.
     """
 
-    lora_layer_name = getattr(self, 'lora_layer_name', None)
+    lora_layer_name = getattr(self, "lora_layer_name", None)
     if lora_layer_name is None:
         return
 
@@ -253,7 +286,10 @@ def lora_apply_weights(self: Union[torch.nn.Conv2d, torch.nn.Linear, torch.nn.Mu
     weights_backup = getattr(self, "lora_weights_backup", None)
     if weights_backup is None:
         if isinstance(self, torch.nn.MultiheadAttention):
-            weights_backup = (self.in_proj_weight.to(devices.cpu, copy=True), self.out_proj.weight.to(devices.cpu, copy=True))
+            weights_backup = (
+                self.in_proj_weight.to(devices.cpu, copy=True),
+                self.out_proj.weight.to(devices.cpu, copy=True),
+            )
         else:
             weights_backup = self.weight.to(devices.cpu, copy=True)
 
@@ -269,7 +305,7 @@ def lora_apply_weights(self: Union[torch.nn.Conv2d, torch.nn.Linear, torch.nn.Mu
 
         for lora in loaded_loras:
             module = lora.modules.get(lora_layer_name, None)
-            if module is not None and hasattr(self, 'weight'):
+            if module is not None and hasattr(self, "weight"):
                 self.weight += lora_calc_updown(lora, module, self.weight)
                 continue
 
@@ -278,20 +314,28 @@ def lora_apply_weights(self: Union[torch.nn.Conv2d, torch.nn.Linear, torch.nn.Mu
             module_v = lora.modules.get(lora_layer_name + "_v_proj", None)
             module_out = lora.modules.get(lora_layer_name + "_out_proj", None)
 
-            if isinstance(self, torch.nn.MultiheadAttention) and module_q and module_k and module_v and module_out:
+            if (
+                isinstance(self, torch.nn.MultiheadAttention)
+                and module_q
+                and module_k
+                and module_v
+                and module_out
+            ):
                 updown_q = lora_calc_updown(lora, module_q, self.in_proj_weight)
                 updown_k = lora_calc_updown(lora, module_k, self.in_proj_weight)
                 updown_v = lora_calc_updown(lora, module_v, self.in_proj_weight)
                 updown_qkv = torch.vstack([updown_q, updown_k, updown_v])
 
                 self.in_proj_weight += updown_qkv
-                self.out_proj.weight += lora_calc_updown(lora, module_out, self.out_proj.weight)
+                self.out_proj.weight += lora_calc_updown(
+                    lora, module_out, self.out_proj.weight
+                )
                 continue
 
             if module is None:
                 continue
 
-            print(f'failed to calculate lora weights for layer {lora_layer_name}')
+            print(f"failed to calculate lora weights for layer {lora_layer_name}")
 
         setattr(self, "lora_current_names", wanted_names)
 
@@ -334,7 +378,9 @@ def lora_MultiheadAttention_forward(self, *args, **kwargs):
 def lora_MultiheadAttention_load_state_dict(self, *args, **kwargs):
     lora_reset_cached_weight(self)
 
-    return torch.nn.MultiheadAttention_load_state_dict_before_lora(self, *args, **kwargs)
+    return torch.nn.MultiheadAttention_load_state_dict_before_lora(
+        self, *args, **kwargs
+    )
 
 
 def list_available_loras():
@@ -342,10 +388,13 @@ def list_available_loras():
 
     os.makedirs(shared.cmd_opts.lora_dir, exist_ok=True)
 
-    candidates = \
-        glob.glob(os.path.join(shared.cmd_opts.lora_dir, '**/*.pt'), recursive=True) + \
-        glob.glob(os.path.join(shared.cmd_opts.lora_dir, '**/*.safetensors'), recursive=True) + \
-        glob.glob(os.path.join(shared.cmd_opts.lora_dir, '**/*.ckpt'), recursive=True)
+    candidates = (
+        glob.glob(os.path.join(shared.cmd_opts.lora_dir, "**/*.pt"), recursive=True)
+        + glob.glob(
+            os.path.join(shared.cmd_opts.lora_dir, "**/*.safetensors"), recursive=True
+        )
+        + glob.glob(os.path.join(shared.cmd_opts.lora_dir, "**/*.ckpt"), recursive=True)
+    )
 
     for filename in sorted(candidates, key=str.lower):
         if os.path.isdir(filename):
@@ -355,6 +404,11 @@ def list_available_loras():
 
         available_loras[name] = LoraOnDisk(name, filename)
 
+    return available_loras
+
+
+# Bind the list_lora_fn to the API
+api.list_lora_fn = list_available_loras
 
 available_loras = {}
 loaded_loras = []
